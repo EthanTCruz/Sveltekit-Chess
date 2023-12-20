@@ -1,0 +1,9 @@
+{
+	"/": [],
+	"/login": [],
+	"/protected/gameplay": [],
+	"/protected/homepage": [
+		"src/routes/protected/homepage/+layout.server.js",
+		"src/routes/protected/homepage/+layout.server.js"
+	]
+}
