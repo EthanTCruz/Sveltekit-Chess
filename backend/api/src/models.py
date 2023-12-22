@@ -26,7 +26,21 @@ class CurrentGames(Base):
     __tablename__ = "CurrentGames"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    game_id = Column(String)
+    move_no = Column(Integer)
     turn = Column(Integer,index=True)
+    white_player_id = Column(Integer)
+    black_player_id = Column(Integer)
+    last_move = Column(String)
+    fen = Column(String)
+
+class PastGames(Base):
+    __tablename__ = "PastGames"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    game_id = Column(String)
+    move_no = Column(Integer)
+    winner = Column(Integer,index=True)
     white_player_id = Column(Integer)
     black_player_id = Column(Integer)
     last_move = Column(String)
