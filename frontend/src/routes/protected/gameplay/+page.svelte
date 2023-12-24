@@ -1,9 +1,14 @@
 <script type="module">
  
   import { Chess } from 'chess.js'
-  import {board, boardT} from '$lib/store'
+  import { boardT as importedBoardT } from '$lib/store';
+
+
+
+
+
   import { onMount } from 'svelte';
-	import { comment } from 'svelte/internal';
+
 
 	/**
 	 * @type {WebSocket}
@@ -13,29 +18,49 @@
 	 * @type {string | null}
 	 */
 	let token;
+	export let client_team = "Waiting";
+	export let turn = "0";
 	let chess = new Chess()
+	let winner = 'n'
+	let showButtons = false;
+	export let WinLossStatement = "";
+	// Create a local copy of boardT
+	let localBoardT = importedBoardT;
+	
   onMount(() => {
 	console.log(1)
 	 token = localStorage.getItem('token');
 	 ws = new WebSocket("ws://localhost:8000/ws/game");
     ws.onmessage = function(event) {
-		
-		console.log('Message from server:', event.data);
-		let contents = event.data.split(",")
-		fen_components = contents[0]
-		setBoard(fen_components=fen_components)
+		try {
+			var obj = JSON.parse(event.data);
+			//console.log('Message from server:', event.data);
+
+			fen_components = obj["match"]
+			client_team = obj["team"]
+			turn = obj["turn"]
+			winner = obj["winner"]
+			setBoard(fen_components=fen_components)
+			// Work with the object
+		  } catch (error) {
+			console.error("Error parsing JSON:", event.data);
+		  }
+
 
     };
 
 	ws.onopen = () => {
-		console.log("WebSocket connection established");
+		if (ws.readyState === WebSocket.OPEN) {
+			console.log("WebSocket connection established");
   
-		// Send a message once the connection is open
-		let message = {
-			token: token,
-		};
-		ws.send(JSON.stringify(message));
+			let message = {
+				token: token,
+			};
+			ws.send(JSON.stringify(message));
 
+		} else {
+			console.error('WebSocket is not open. ReadyState:', ws.readyState);
+		}
 	  };
 
   
@@ -49,13 +74,15 @@
 	  /**
 	   * @param {string | ArrayBufferLike | Blob | ArrayBufferView} message
 	   */
-	   function sendMessage(message){
-		console.log(ws.readyState)
-		ws.send(message)
-	  }
+
   });
   
+  // Function to flip the board
+  function flipBoard() {
 
+	localBoardT = localBoardT.reverse();
+
+  }
 
   let fen_components = chess.fen()
 
@@ -65,7 +92,25 @@
 
 
   function setBoard(fen_components){
+	if (winner != 'n'){
+		showButtons = true
+		if (winner == 's'){
+			console.log("Stalemate")
+			WinLossStatement = "Stalemate";
+		}
+		else if (winner == client_team){
+			console.log("Win")
+			WinLossStatement = "Checkmate, you win!!!";
 
+		}
+		else {
+			console.log("Lose")
+			WinLossStatement = "Checkmate, you lose.";
+		}
+	}
+	else{
+		showButtons = false;
+	}
 	chess = new Chess(fen_components)
 
 	const blacks = ['q','k','b','n','r','p']
@@ -80,20 +125,24 @@ for (let i = 0; i < 8; i++){
 		let piece = fen_board[i].charAt(j)
 		if (whites.includes(piece)){
 			team = 'W'
-			boardT[7-i][board_column] = `${piece}${team}`
+			localBoardT[7-i][board_column] = `${piece}${team}`
 			board_column++
 		} else if(blacks.includes(piece)){
 			team = 'B'
-			boardT[7-i][board_column] = `${piece.toUpperCase()}${team}`
+			localBoardT[7-i][board_column] = `${piece.toUpperCase()}${team}`
 		board_column++
 		} else {
 			let value = Number(fen_board[i].charAt(j))
 				for( let m = Number(board_column);m<Number(board_column+value);m++){
-					boardT[7-i][m] = "  "
+					localBoardT[7-i][m] = "  "
 				}
 				board_column += value
 	}
 }
+}
+if (client_team == 'w'){
+	flipBoard()
+
 }
   }
 
@@ -104,16 +153,32 @@ for (let i = 0; i < 8; i++){
 	 */
 
 function movePiece(column, row) {
+if (turn != client_team){
+	console.log("turn is: ",turn)
+	console.log("your team is: ",client_team)
+	return(0) 
+}
 
 row++
+if (client_team == 'w'){
+	row = 9 - row
+}
 let moves = ['a','b','c','d','e','f','g','h']
 let column_value = moves[column]
 console.log(column_value,row)
 let move = column_value+row
+
 if (move_src == ""){
 	move_src = move
 } else {
+try {
 chess.move({from:move_src,to:move})
+}
+catch(error){
+	console.log(`Invalid move: ${move_src}${move}`)
+	move_src = ""
+	return(0)
+}
 let full_move = move_src.concat(move)
 if (token != null && ws.readyState === WebSocket.OPEN) {
 	let message = {
@@ -129,25 +194,42 @@ move_src = ""
 
 }
 
-
+function PlayGame() {
+	if (token != null && ws.readyState === WebSocket.OPEN) {
+	let message = {
+		token: token,
+	};
+	ws.send(JSON.stringify(message));
+}
+  }
 
 </script>
 
 
-  
+ {#if showButtons}
+ <h1>{WinLossStatement}</h1>
+ {:else}
+ <h1>Your {client_team}, Turn is {turn}</h1>
+ {/if} 
 
 <div class="board">
-	{#each boardT as row, rowIndex}
+	{#each localBoardT as row, rowIndex}
 	  <div class="row">
 		{#each row as cell, colIndex}
 		  <!-- svelte-ignore a11y-click-events-have-key-events -->
 		  <div class="cell" on:click="{() => movePiece(colIndex, rowIndex)}">
-			{cell}
+			{#if cell !== '  '}
+            <img src={`/images/${cell}.png`} alt={cell}>
+          {/if}
+
 		  </div>
 		{/each}
 	  </div>
 	{/each}
   </div>
+{#if showButtons}
+<button on:click={PlayGame}>Play Game</button>
+{/if}
 
 <style>
 
@@ -172,7 +254,26 @@ move_src = ""
   height: 60px; /* Adjusted for better visibility */
   text-align: center;
   padding: 10px; /* Adjust padding as needed */
-  border: 3px solid black;
+  border: 3px solid blue;
+}
+
+.cell {
+  background-color: lightcyan;
+}
+
+/* Alternate color for every other cell */
+/* This selector targets every even cell in each row */
+.cell:nth-child(even) {
+  background-color: blue;
+}
+
+/* Adjust the pattern for each odd row */
+/* This flips the color scheme for every other row */
+.row:nth-child(odd) .cell:nth-child(odd) {
+  background-color: blue;
+}
+.row:nth-child(odd) .cell:nth-child(even) {
+  background-color: lightcyan;
 }
 
 </style>

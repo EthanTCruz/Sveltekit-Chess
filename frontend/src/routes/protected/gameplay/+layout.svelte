@@ -15,8 +15,12 @@ function logout() {
   localStorage.removeItem('token'); // Clear the token from localStorage
   goto('/login'); // Redirect to the login page
 }
+function home() {
+  goto('/protected/homepage'); // Redirect to the login page
+}
   </script>
   <button on:click={logout}>Logout</button>
+  <button on:click={home}>Home</button>
   <div>
     <!-- Your layout's HTML structure -->
   

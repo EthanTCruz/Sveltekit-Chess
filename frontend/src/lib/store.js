@@ -12,12 +12,12 @@ export let board = [
 ];
 
 export let boardT = [
- ['RW','NW','BW','QW','KW','BW','MW','RW'],
+ ['RW','NW','BW','QW','KW','BW','NW','RW'],
  ['PW','PW','PW','PW','PW','PW','PW','PW'],
  ['  ','  ','  ','  ','  ','  ','  ','  '],
  ['  ','  ','  ','  ','  ','  ','  ','  '],
  ['  ','  ','  ','  ','  ','  ','  ','  '],
  ['  ','  ','  ','  ','  ','  ','  ','  '],
  ['PB','PB','PB','PB','PB','PB','PB','PB'],
- ['RB','NB','BB','QB','KB','BB','MB','RB']
+ ['RB','NB','BB','QB','KB','BB','NB','RB']
 ]
