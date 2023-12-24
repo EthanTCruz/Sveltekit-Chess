@@ -12,6 +12,7 @@
 
 
 function logout() {
+  localStorage.removeItem('refresh_token');
   localStorage.removeItem('token'); // Clear the token from localStorage
   goto('/login'); // Redirect to the login page
 }

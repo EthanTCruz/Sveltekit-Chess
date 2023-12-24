@@ -18,6 +18,10 @@
 	 * @type {string | null}
 	 */
 	let token;
+	/**
+	 * @type {string | null}
+	 */
+	let refresh_token;
 	export let client_team = "Waiting";
 	export let turn = "0";
 	let chess = new Chess()
@@ -28,19 +32,32 @@
 	let localBoardT = importedBoardT;
 	
   onMount(() => {
-	console.log(1)
+
 	 token = localStorage.getItem('token');
+	 refresh_token = localStorage.getItem('refresh_token');
 	 ws = new WebSocket("ws://localhost:8000/ws/game");
     ws.onmessage = function(event) {
 		try {
+
 			var obj = JSON.parse(event.data);
 			//console.log('Message from server:', event.data);
+
+			console.log(obj)
+			if ("access_token" in obj) { 
+				localStorage.setItem('token', obj["access_token"]);
+			  if ("refresh_token" in obj){
+				localStorage.setItem('refresh_token', obj["refresh_token"]);
+			  }
+			}
+			else{
+
 
 			fen_components = obj["match"]
 			client_team = obj["team"]
 			turn = obj["turn"]
 			winner = obj["winner"]
 			setBoard(fen_components=fen_components)
+			}
 			// Work with the object
 		  } catch (error) {
 			console.error("Error parsing JSON:", event.data);
@@ -55,6 +72,7 @@
   
 			let message = {
 				token: token,
+				refresh_token: refresh_token
 			};
 			ws.send(JSON.stringify(message));
 
@@ -154,8 +172,7 @@ if (client_team == 'w'){
 
 function movePiece(column, row) {
 if (turn != client_team){
-	console.log("turn is: ",turn)
-	console.log("your team is: ",client_team)
+
 	return(0) 
 }
 
@@ -183,6 +200,7 @@ let full_move = move_src.concat(move)
 if (token != null && ws.readyState === WebSocket.OPEN) {
 	let message = {
 		'token': token,
+		'refresh_token': refresh_token,
 		'move': full_move		
 	};
 	ws.send(JSON.stringify(message));
@@ -198,10 +216,13 @@ function PlayGame() {
 	if (token != null && ws.readyState === WebSocket.OPEN) {
 	let message = {
 		token: token,
+		refresh_token:refresh_token
 	};
 	ws.send(JSON.stringify(message));
 }
   }
+
+
 
 </script>
 
@@ -211,6 +232,9 @@ function PlayGame() {
  {:else}
  <h1>Your {client_team}, Turn is {turn}</h1>
  {/if} 
+ {#if showButtons}
+<button on:click={PlayGame}>Play Game</button>
+{/if}
 
 <div class="board">
 	{#each localBoardT as row, rowIndex}
@@ -227,9 +251,7 @@ function PlayGame() {
 	  </div>
 	{/each}
   </div>
-{#if showButtons}
-<button on:click={PlayGame}>Play Game</button>
-{/if}
+
 
 <style>
 

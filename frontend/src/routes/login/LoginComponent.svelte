@@ -29,6 +29,9 @@ formData.append('password', password);
     // You can store the token here
     if (data.access_token) { 
       localStorage.setItem('token', data.access_token);
+    if (data.refresh_token){
+      localStorage.setItem('refresh_token', data.refresh_token);
+    }
 // Replace loginSuccess with your actual success condition
       goto('/protected/homepage');
     }
