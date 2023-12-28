@@ -12,7 +12,7 @@ formData.append('password', password);
 
 
 
-    const response = await fetch('http://localhost:8000/token', {
+    const response = await fetch('http://localhost:8000/register', {
       method: 'POST',
       headers: {
         'Content-Type': "application/x-www-form-urlencoded",
@@ -21,11 +21,11 @@ formData.append('password', password);
     });
 
     if (!response.ok) {
-      throw new Error('Login failed');
+      throw new Error('Registration failed');
     }
 
     const data = await response.json();
-    console.log('Login successful', data);
+    console.log('Registration successful', data);
     // You can store the token here
     if (data.access_token) { 
       localStorage.setItem('token', data.access_token);
@@ -47,12 +47,7 @@ formData.append('password', password);
 };
 
     
-  
-
-	function RegisterUser(){
-    goto('/register');
-	}
-</script>
+  </script>
   
   <form on:submit|preventDefault={handleLogin}>
     <div>
@@ -63,12 +58,9 @@ formData.append('password', password);
       <label for="password">Password:</label>
       <input id="password" type="password" bind:value={password} />
     </div>
-    <button type="submit">Login</button>
-
+    <button type="submit">Register User</button>
     {#if errorMessage}
       <p style="color: red;">{errorMessage}</p>
     {/if}
-
   </form>
-  <button on:click={RegisterUser}>New User</button>
   
