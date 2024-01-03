@@ -1,4 +1,5 @@
 <script>
+  import './RegisterStyles.css'
     import { goto } from '$app/navigation';
     let username = '';
     let password = '';
@@ -48,7 +49,8 @@ formData.append('password', password);
 
     
   </script>
-  
+  <div class="register-container ">
+    <h1>User Registration</h1>
   <form on:submit|preventDefault={handleLogin}>
     <div>
       <label for="username">Username:</label>
@@ -63,4 +65,4 @@ formData.append('password', password);
       <p style="color: red;">{errorMessage}</p>
     {/if}
   </form>
-  
+</div>

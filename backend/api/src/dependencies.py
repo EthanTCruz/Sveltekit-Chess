@@ -11,12 +11,21 @@ import random
 import json
 import chess
 import hashlib
+from api.src.websocket_class import ConnectionManager
+from jose import ExpiredSignatureError
+import bcrypt
+from passlib.context import CryptContext
+import requests
 
+ai_api = 'http://127.0.0.1:8001/aimove'
 match_key = "match"
 team = "team"
 turn_color = "turn"
 start_fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
+ai_id = -1
 
+access_token_exp = 30
+refresh_token = 1000
 SECRET_KEY = "your-secret-key"
 ALGORITHM = "HS256"
 
@@ -47,10 +56,22 @@ def get_user(db: Session, username: str):
 def get_user_by_id(db: Session, user_id: str):
     return db.query(UserDB).filter(UserDB.id == user_id).first()
 
-def get_current_games(db: Session, user_id: int):
-    results = db.query(CurrentGames).filter(or_(
-        CurrentGames.white_player_id == user_id,
-        CurrentGames.black_player_id == user_id)
+def get_current_games(db: Session, user_id: int, ai: bool = False):
+    if ai:
+        results = db.query(CurrentGames).filter(and_(or_(
+            CurrentGames.white_player_id == user_id,
+            CurrentGames.black_player_id == user_id),
+            or_(
+            CurrentGames.white_player_id != ai_id,
+            CurrentGames.black_player_id != ai_id))
+        ).order_by(CurrentGames.id.desc()).first()
+    else:
+        results = db.query(CurrentGames).filter(and_(or_(
+            CurrentGames.white_player_id == user_id,
+            CurrentGames.black_player_id == user_id),
+            or_(
+            CurrentGames.white_player_id == ai_id,
+            CurrentGames.black_player_id == ai_id))
         ).order_by(CurrentGames.id.desc()).first()
     return results
 
@@ -58,14 +79,17 @@ def find_empty_games(db: Session, user_id: int):
     results = db.query(CurrentGames).filter(CurrentGames.turn == WAITING_TURN).first()
     return results
 
-def create_game(db: Session, white_player_id: int = DEFAULT_INT, black_player_id: int = DEFAULT_INT):
+def create_game(db: Session, white_player_id: int = DEFAULT_INT, 
+                black_player_id: int = DEFAULT_INT, ai: bool = False):
     
     if white_player_id is DEFAULT_INT and black_player_id is DEFAULT_INT:
         raise Exception("created game without host")
-    
+    turn = WAITING_TURN
+    if ai:
+        turn = white_player_id
     new_game = CurrentGames(
         move_no = 0,
-        turn=WAITING_TURN,
+        turn=turn,
         game_id = "Waiting",
         white_player_id=white_player_id,
         black_player_id=black_player_id,
@@ -143,9 +167,9 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         raise credentials_exception
     return user
 
-def create_access_token(data: dict):
+def create_access_token(data: dict,expire: int = 30):
     to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(minutes=15)
+    expire = datetime.utcnow() + timedelta(minutes=expire)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
@@ -165,17 +189,22 @@ def decode_access_token(token: str):
     decoded_token = jwt.decode(token,SECRET_KEY,algorithms=ALGORITHM)
     return decoded_token
 
-def start_game(user_id: int, db: Session = Depends(get_db)):
-    white_player_id = DEFAULT_INT
-    black_player_id = DEFAULT_INT
+def start_game(user_id: int, db: Session = Depends(get_db),ai: bool = False):
+    if ai:
+        white_player_id = ai_id
+        black_player_id = ai_id
+    else:
+        white_player_id = DEFAULT_INT
+        black_player_id = DEFAULT_INT
     color = random.choice([0, 1])
     if color == 0:
 
         white_player_id = user_id
+
     else:
 
         black_player_id = user_id
-    match = create_game(db=db,white_player_id=white_player_id,black_player_id=black_player_id)
+    match = create_game(db=db,white_player_id=white_player_id,black_player_id=black_player_id,ai=True)
 
     return match
 
@@ -202,7 +231,6 @@ def matchfinder(user_id:str, db: Session = Depends(get_db)):
 
         match = current_game
         
-
     return match
 
 def user_id_from_ws(data: dict,db: Session = Depends(get_db)):
@@ -236,6 +264,11 @@ def process_move(move:str,match: CurrentGames,db: Session = Depends(get_db)):
         
         for game in get_current_games_by_id(db=db,game_id=match.game_id):
             move_current_to_past(match=game,winner_id=winner_id,db=db)
+    elif board.is_stalemate() or board.is_insufficient_material() or board.is_variant_draw():
+        winner_id = 0
+        winner = 's'
+        for game in get_current_games_by_id(db=db,game_id=match.game_id):
+            move_current_to_past(match=game,winner_id=winner_id,db=db)
 
     return match, winner
 
@@ -260,22 +293,28 @@ def move_current_to_past(match: CurrentGames, winner_id: str,db: Session = Depen
     return past_game
 
 def initialize_connection(user_id: int,db: Session = Depends(get_db)):
-        match = matchfinder(user_id=user_id, db=db)
-        message_dict = {}
+    match = matchfinder(user_id=user_id, db=db)
+    message_dict = {}
 
-        message_dict[match_key] = f"{match.fen}"
-        message_dict[team] = determine_player_color(match=match,player_id=user_id)
+    message_dict[match_key] = f"{match.fen}"
+    message_dict[team] = determine_player_color(match=match,player_id=user_id)
 
-
+    if match.turn == 0:
+        message_dict[turn_color] = 'Waiting'
+    else:
         if match.turn == match.white_player_id:
             message_dict[turn_color] = 'w'
         elif match.turn == match.black_player_id:
             message_dict[turn_color] = 'b'
 
-        message_dict["winner"] = 'n'
 
-        message = json.dumps(message_dict)
-        return message
+    message_dict["winner"] = 'n'
+
+
+    return message_dict, match
+
+
+
 
 def get_turn_color_from_match(match: CurrentGames):
     if match.turn == match.white_player_id:
@@ -284,7 +323,8 @@ def get_turn_color_from_match(match: CurrentGames):
         results = 'b'
     return results
 
-def has_match_logic(message_dict: dict,data: dict,match: CurrentGames,user_id: int, db: Session = Depends(get_db)):
+def has_match_logic(message_dict: dict,data: dict,match: CurrentGames,user_id: int,
+                     db: Session = Depends(get_db), ai: bool = False):
     message_dict[team] = determine_player_color(match=match,player_id=user_id)
     winner = 'n'
     # if they sent a move and it's their turn update and return new board
@@ -302,16 +342,105 @@ def has_match_logic(message_dict: dict,data: dict,match: CurrentGames,user_id: i
     message_dict[turn_color] = get_turn_color_from_match(match=match)
     message_dict["winner"] = winner
 
-    message = json.dumps(message_dict)
-    return message, match
+    #    message = json.dumps(message_dict)
+    return message_dict, match
 
 async def receive_data(websocket: WebSocket,db: Session = Depends(get_db)):
-        data = await websocket.receive_text()
-        data = json.loads(data)
-        user_id = user_id_from_ws(data=data,db=db)
-  
+    data = await websocket.receive_text()
+    try:
+
+        data_dict = json.loads(data)
+        user_id = user_id_from_ws(data=data_dict,db=db)
+
         if user_id is None:
             await websocket.close(code=1000)
             return
         
-        return data, user_id
+        return data_dict, user_id
+    except ExpiredSignatureError:
+        # Assuming 'data' is already a dictionary with 'refresh_token'
+        data_dict = json.loads(data)
+        token = decode_access_token(token=data_dict["refresh_token"])
+        username = token["sub"]
+        user_record = get_user(db=db, username=username)
+
+        if user_record:
+            access_token = create_access_token(data={"sub": username}, expire=access_token_exp)
+            refresh_token = create_access_token(data={"sub": username}, expire=1000)
+            message_dict = {"access_token": access_token, "token_type": "bearer", "refresh_token": refresh_token}
+            await websocket.send_json(message_dict)
+            # Retry receiving data
+
+            data_dict["token"] = access_token
+            data_dict["refresh_token"] = refresh_token
+            user_id = user_id_from_ws(data=data_dict, db=db)
+            return data_dict, user_id
+        else:
+            await websocket.close(code=1000)
+            return None, None
+
+
+
+async def game_over_or_continue_logic(message_dict: dict, match:CurrentGames, manager: ConnectionManager):
+    message_dict[team] = 'w'
+    message = json.dumps(message_dict)
+    await manager.send_personal_message(message=message,user_id=match.white_player_id)
+    message_dict[team] = 'b'
+    message = json.dumps(message_dict)
+    await manager.send_personal_message(message=message,user_id=match.black_player_id)
+
+def hash_password(password: str):
+    return pwd_context.hash(password)
+
+def initialize_connection_ai(user_id: int,db: Session = Depends(get_db)):
+    match = matchfinder_ai(user_id=user_id, db=db)
+    message_dict = {}
+
+    message_dict[match_key] = f"{match.fen}"
+    message_dict[team] = determine_player_color(match=match,player_id=user_id)
+    
+
+    message_dict[turn_color] = get_turn_color_from_match(match=match)
+
+    if match.turn == match.white_player_id:
+        message_dict[turn_color] = 'w'
+    elif match.turn == match.black_player_id:
+        message_dict[turn_color] = 'b'
+
+
+    message_dict["winner"] = 'n'
+
+
+    return message_dict, match
+
+def matchfinder_ai(user_id:str, db: Session = Depends(get_db)):
+
+    #Is my id already in a game with or without an opponent
+    current_game = get_current_games(db=db,user_id=user_id,ai=True)
+
+    
+    #If not, make a game
+    if current_game is None:
+
+        match = start_game(db=db,user_id=user_id,ai=True)
+
+    else:
+
+        match = current_game
+        
+    return match
+
+async def ai_match_logic(message_dict: dict, match:CurrentGames, manager: ConnectionManager):
+    message_dict["match"] = match.fen
+    message_dict["turn"] = get_turn_color_from_match(match=match)
+    if match.black_player_id == ai_id:
+        message_dict[team] = 'w'
+        message = json.dumps(message_dict)
+        await manager.send_personal_message(message=message,user_id=match.white_player_id)
+    else:
+        message_dict[team] = 'b'
+        message = json.dumps(message_dict)
+        await manager.send_personal_message(message=message,user_id=match.black_player_id)
+
+
+

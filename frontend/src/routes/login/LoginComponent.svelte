@@ -1,4 +1,5 @@
 <script>
+    import './LoginStyles.css';
     import { goto } from '$app/navigation';
     let username = '';
     let password = '';
@@ -53,7 +54,8 @@ formData.append('password', password);
     goto('/register');
 	}
 </script>
-  
+<div class="login-container">
+  <h1>User Login</h1>
   <form on:submit|preventDefault={handleLogin}>
     <div>
       <label for="username">Username:</label>
@@ -71,4 +73,4 @@ formData.append('password', password);
 
   </form>
   <button on:click={RegisterUser}>New User</button>
-  
+  </div>

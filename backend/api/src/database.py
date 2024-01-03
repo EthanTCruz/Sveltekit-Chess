@@ -10,6 +10,9 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base.metadata.create_all(bind=engine)
 
+
+#StalemateFen = "4k3/8/5P2/8/8/8/8/4K3 w - - 0 1"
+#update CurrentGames set fen = "4k3/8/5P2/8/8/8/8/4K3 w - - 0 1" where move_no = 4;
 hashed_pass = "$2b$12$VYD8bmkRyiqrDp5ocK2LFujtvDi4Qh59ARW5HHkLypbJ6cBYzV3n2"
 def populate_db_if_empty():
     db: Session = SessionLocal()

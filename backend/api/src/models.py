@@ -20,6 +20,10 @@ class UserDB(Base):
     username = Column(String, unique = True,index=True)
     hashed_password = Column(String)
 
+class UserCreate(BaseModel):
+    username: str
+    password: str
+
 # Create the database tables
     
 class CurrentGames(Base):

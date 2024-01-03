@@ -1,6 +1,7 @@
 {
 	"/": [],
 	"/login": [],
+	"/protected/computerGameplay": [],
 	"/protected/gameplay": [],
 	"/protected/homepage": [
 		"src/routes/protected/homepage/+layout.server.js",

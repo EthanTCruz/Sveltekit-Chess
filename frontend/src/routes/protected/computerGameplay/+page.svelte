@@ -24,7 +24,7 @@
 	 * @type {string | null}
 	 */
 	let refresh_token;
-	export let client_team = "Waiting";
+	export let client_team = "w";
 	export let turn = "0";
 	let chess = new Chess()
 	let winner = 'n'
@@ -37,7 +37,7 @@
 
 	 token = localStorage.getItem('token');
 	 refresh_token = localStorage.getItem('refresh_token');
-	 ws = new WebSocket("ws://localhost:8000/ws/game");
+	 ws = new WebSocket("ws://localhost:8000/ai/game");
     ws.onmessage = function(event) {
 		try {
 
