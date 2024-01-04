@@ -1,6 +1,6 @@
 
 <script>
-    import RegisterComponent from "./RegisterComponent.svelte";
+    import RegisterComponent from "../../components/RegisterComponent.svelte";
   </script>
   
   <RegisterComponent />

@@ -1,6 +1,6 @@
 
 <script>
-    import LoginComponent from "./LoginComponent.svelte";
+    import LoginComponent from "../../components/LoginComponent.svelte";
   </script>
   
   <LoginComponent />

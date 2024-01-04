@@ -1,5 +1,5 @@
-from api.src.database import SessionLocal
-from api.src.models import UserDB,CurrentGames, PastGames
+from Sveltekit_Chess.backend.api.src.database import SessionLocal
+from Sveltekit_Chess.backend.api.src.models import UserDB,CurrentGames, PastGames
 from fastapi.security import OAuth2PasswordBearer
 from fastapi import Depends, HTTPException, status, WebSocket
 from passlib.context import CryptContext
@@ -11,7 +11,7 @@ import random
 import json
 import chess
 import hashlib
-from api.src.websocket_class import ConnectionManager
+from Sveltekit_Chess.backend.api.src.websocket_class import ConnectionManager
 from jose import ExpiredSignatureError
 import bcrypt
 from passlib.context import CryptContext
@@ -62,16 +62,16 @@ def get_current_games(db: Session, user_id: int, ai: bool = False):
             CurrentGames.white_player_id == user_id,
             CurrentGames.black_player_id == user_id),
             or_(
-            CurrentGames.white_player_id != ai_id,
-            CurrentGames.black_player_id != ai_id))
+            CurrentGames.white_player_id == ai_id,
+            CurrentGames.black_player_id == ai_id))
         ).order_by(CurrentGames.id.desc()).first()
     else:
         results = db.query(CurrentGames).filter(and_(or_(
             CurrentGames.white_player_id == user_id,
             CurrentGames.black_player_id == user_id),
-            or_(
-            CurrentGames.white_player_id == ai_id,
-            CurrentGames.black_player_id == ai_id))
+            and_(
+            CurrentGames.white_player_id != ai_id,
+            CurrentGames.black_player_id != ai_id))
         ).order_by(CurrentGames.id.desc()).first()
     return results
 
@@ -204,7 +204,7 @@ def start_game(user_id: int, db: Session = Depends(get_db),ai: bool = False):
     else:
 
         black_player_id = user_id
-    match = create_game(db=db,white_player_id=white_player_id,black_player_id=black_player_id,ai=True)
+    match = create_game(db=db,white_player_id=white_player_id,black_player_id=black_player_id,ai=ai)
 
     return match
 
@@ -331,11 +331,11 @@ def has_match_logic(message_dict: dict,data: dict,match: CurrentGames,user_id: i
     if data.get('move') != None and match.turn == user_id:
         move = data['move']
         match, winner = process_move(move=move,match=match,db=db)
-
-        if user_id == match.white_player_id:
-            message_dict[team] = 'b'
-        elif user_id == match.black_player_id:
-            message_dict[team] = 'w'
+        if winner != 'n':
+            if user_id == match.white_player_id:
+                message_dict[team] = 'b'
+            elif user_id == match.black_player_id:
+                message_dict[team] = 'w'
 
 
     message_dict[match_key] = f"{match.fen}"

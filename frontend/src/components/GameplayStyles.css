@@ -1,0 +1,141 @@
+/* Add this inside a <style> tag or in a separate CSS file */
+
+/* General styling for the form */
+form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+  max-width: 300px;
+  margin: auto;
+}
+
+/* Styling for each input field and label */
+form div {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+label {
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+input {
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+/* Styling for buttons */
+button {
+  padding: 10px 15px;
+  border: none;
+  border-radius: 5px;
+  background-color: #007bff;
+  color: white;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+
+/* Styling for the error message */
+p {
+  color: red;
+  font-size: 14px;
+}
+
+.register-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px; /* Adjust as needed for spacing */
+  padding: 20px;
+  margin: auto;
+}
+
+
+
+/* Add styles to center the board within its container */
+.board {
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+margin: auto;
+height: 100vh; /* Full height of the viewport */
+}
+
+.rowb {
+display: flex;
+justify-content: center;
+
+}
+
+
+
+.cellb {
+width: 60px; /* Adjusted for better visibility */
+height: 60px; /* Adjusted for better visibility */
+text-align: center;
+padding: 10px; /* Adjust padding as needed */
+border: 3px solid blue;
+background-color: lightcyan;
+}
+
+/* Alternate color for every other cell */
+/* This selector targets every even cell in each row */
+.cellb:nth-child(even) {
+background-color: blue;
+}
+
+/* Adjust the pattern for each odd row */
+/* This flips the color scheme for every other row */
+.rowb:nth-child(odd) .cellb:nth-child(odd) {
+background-color: blue;
+}
+.rowb:nth-child(odd) .cellb:nth-child(even) {
+background-color: lightcyan;
+}
+
+.roww {
+display: flex;
+justify-content: center;
+
+}
+
+
+
+.cellw {
+width: 60px; /* Adjusted for better visibility */
+height: 60px; /* Adjusted for better visibility */
+text-align: center;
+padding: 10px; /* Adjust padding as needed */
+border: 3px solid blue;
+background-color: lightcyan;
+}
+
+/* Alternate color for every other cell */
+/* This selector targets every even cell in each row */
+.cellw:nth-child(odd) {
+background-color: blue;
+}
+
+/* Adjust the pattern for each odd row */
+/* This flips the color scheme for every other row */
+.roww:nth-child(odd) .cellw:nth-child(odd) {
+background-color: lightcyan;
+}
+.roww:nth-child(odd) .cellw:nth-child(even) {
+background-color: blue;
+}

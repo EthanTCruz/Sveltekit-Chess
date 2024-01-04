@@ -1,5 +1,5 @@
 from sqlalchemy import create_engine
-from api.src.models import Base, UserDB
+from Sveltekit_Chess.backend.api.src.models import Base, UserDB
 from sqlalchemy.orm import sessionmaker, Session
 
 DATABASE_URL = "sqlite:///C:/Users/ethan/git/Sveltekit-Chess/backend/data/test.db"

@@ -9,7 +9,7 @@ node_modules
 !.env.example
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
-*/__pycache__/*
+**/__pycache__/
 /backend/data/test.db
 .venv/
 .vscode/
@@ -17,4 +17,4 @@ vite.config.ts.timestamp-*
 /.vscode/
 .venv
 .vscode
-*/.pytest_cache/*
+**/.pytest_cache/**

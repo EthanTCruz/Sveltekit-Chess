@@ -12,6 +12,7 @@ class ConnectionManager:
         self.connections[str(user_id)] = websocket
 
     def disconnect(self, user_id: str):
+        user_id = str(user_id)
         if user_id in self.connections:
             del self.connections[user_id]
 
